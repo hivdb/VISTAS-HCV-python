@@ -443,10 +443,10 @@ def cut_short_gene(isolates: list[dict]) -> list[dict]:
     return filtered
 
 
-def validate_gene_exist(alignments: list[dict]) -> None:
+def warn_missing_drm_genes(alignments: list[dict]) -> None:
     invalid = [iso["IsolateID"] for iso in alignments if not any(g in iso["genes"] for g in DRM_GENES)]
     if invalid:
-        raise ValueError("no DRM gene found for isolate(s): " + ", ".join(invalid))
+        progress("Warning: no DRM gene found for isolate(s): " + ", ".join(invalid))
 
 
 def validate_no_conflict(alignments: list[dict]) -> None:
@@ -670,7 +670,7 @@ def analyze(records: list[dict[str, str]], endpoint: str, batch_size: int) -> li
         alignments.extend(build_alignment_report(data))
         progress(f"Aligning: {batch_end} / {num_records} is processed")
 
-    validate_gene_exist(alignments)
+    warn_missing_drm_genes(alignments)
     validate_no_conflict(alignments)
     alignments = merge_isolates(alignments)
     progress(f"Aligning: merged to {len(alignments)} isolate(s)")
