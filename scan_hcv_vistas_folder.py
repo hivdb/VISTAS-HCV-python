@@ -22,6 +22,10 @@ def find_fasta_files(folder: Path) -> list[Path]:
     )
 
 
+def ref_id_from_filename(path: Path) -> str:
+    return path.stem.split("_", 1)[0]
+
+
 def get_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=(
@@ -48,7 +52,18 @@ def main() -> int:
 
     failures = 0
     for fasta_path in fasta_files:
-        output_path = fasta_path.with_suffix(".csv")
+        output_dir = args.folder / ref_id_from_filename(fasta_path)
+        output_dir.mkdir(exist_ok=True)
+        output_path = output_dir / fasta_path.with_suffix(".csv").name
+        moved_fasta_path = output_dir / fasta_path.name
+        existing_csv_path = fasta_path.with_suffix(".csv")
+        if existing_csv_path.is_file():
+            existing_csv_path.replace(output_path)
+            fasta_path.replace(moved_fasta_path)
+            print(f"Moved existing CSV {existing_csv_path} -> {output_path}", file=sys.stderr, flush=True)
+            print(f"Moved FASTA {fasta_path} -> {moved_fasta_path}", file=sys.stderr, flush=True)
+            continue
+
         command = [
             sys.executable,
             str(CONVERTER),
@@ -62,6 +77,9 @@ def main() -> int:
         if completed.returncode != 0:
             failures += 1
             print(f"Failed: {fasta_path}", file=sys.stderr, flush=True)
+        else:
+            fasta_path.replace(moved_fasta_path)
+            print(f"Moved FASTA {fasta_path} -> {moved_fasta_path}", file=sys.stderr, flush=True)
 
     if failures:
         return 1
